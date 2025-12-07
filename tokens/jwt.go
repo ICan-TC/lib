@@ -10,7 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-type userClaims struct {
+type UserClaims struct {
 	jwt.RegisteredClaims
 	Email       string            `json:"email"`
 	Username    string            `json:"username"`
@@ -108,11 +108,11 @@ func (p *TokenProvider) GetTokensPair(ctx context.Context, sub, username, email,
 	}, nil
 }
 
-func (p *TokenProvider) ParseAccess(ctx context.Context, tokenString string) (*userClaims, error) {
+func (p *TokenProvider) ParseAccess(ctx context.Context, tokenString string) (*UserClaims, error) {
 	return ParseToken(ctx, tokenString, p.secret, "access")
 }
 
-func (p *TokenProvider) ParseRefresh(ctx context.Context, tokenString string) (*userClaims, error) {
+func (p *TokenProvider) ParseRefresh(ctx context.Context, tokenString string) (*UserClaims, error) {
 	return ParseToken(ctx, tokenString, p.secret, "refresh")
 }
 
@@ -160,7 +160,7 @@ func GenerateToken(
 	username, _ := in.ExtraClaims["Username"]
 	email, _ := in.ExtraClaims["Email"]
 
-	claims := &userClaims{
+	claims := &UserClaims{
 		Username:    username,
 		Email:       email,
 		TokenType:   in.TokenType,
@@ -185,7 +185,7 @@ func ParseToken(ctx context.Context,
 	tokenString string,
 	secret string,
 	tokenType string,
-) (*userClaims, error) {
+) (*UserClaims, error) {
 	key := []byte(secret)
 	verifier, err := jwt.NewVerifierHS(jwt.HS256, key)
 	if err != nil {
@@ -195,7 +195,7 @@ func ParseToken(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	var claims userClaims
+	var claims UserClaims
 	err = json.Unmarshal(token.Claims(), &claims)
 	if err != nil {
 		return nil, err
