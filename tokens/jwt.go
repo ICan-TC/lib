@@ -30,6 +30,14 @@ type TokenProviderArgs struct {
 	RefreshTokenTTL int
 }
 
+type TokensPair struct {
+	AccessToken    *jwt.Token `json:"access_token"`
+	AccessExp      time.Time  `json:"access_exp"`
+	RefreshToken   *jwt.Token `json:"refresh_token"`
+	RefreshExp     time.Time  `json:"refresh_exp"`
+	RefreshTokenID string     `json:"refresh_token_id"`
+}
+
 func NewTokenProvider(args TokenProviderArgs) (*TokenProvider, error) {
 	secret := args.Secret
 	if len(secret) == 0 {
@@ -64,18 +72,39 @@ func (p *TokenProvider) GetAccess(ctx context.Context, sub, username, email, ref
 	})
 }
 
-func (p *TokenProvider) GetRefresh(ctx context.Context, sub, username, email string) (*jwt.Token, *time.Time, string, error) {
-	id := ulid.Make().String()
+func (p *TokenProvider) GetRefresh(ctx context.Context, sub, username, email, refreshTokenID string) (*jwt.Token, *time.Time, string, error) {
 	token, exp, err := GenerateToken(ctx, TokenGenerationInput{
 		Sub: sub, Secret: p.secret, Exp: p.refreshExp,
 		TokenType: "refresh",
-		TokenID:   id,
+		TokenID:   refreshTokenID,
 		ExtraClaims: map[string]string{
 			"Username": username,
 			"Email":    email,
 		},
 	})
-	return token, exp, id, err
+	return token, exp, refreshTokenID, err
+}
+
+func (p *TokenProvider) GetTokensPair(ctx context.Context, sub, username, email, refreshTokenID string) (*TokensPair, error) {
+	rID := refreshTokenID
+	if len(rID) == 0 {
+		rID = ulid.Make().String()
+	}
+	rtoken, rexp, rID, err := p.GetRefresh(ctx, sub, username, email, rID)
+	if err != nil {
+		return nil, err
+	}
+	atoken, aexp, err := p.GetAccess(ctx, sub, username, email, rID)
+	if err != nil {
+		return nil, err
+	}
+	return &TokensPair{
+		AccessToken:    atoken,
+		AccessExp:      *aexp,
+		RefreshToken:   rtoken,
+		RefreshExp:     *rexp,
+		RefreshTokenID: rID,
+	}, nil
 }
 
 func (p *TokenProvider) ParseAccess(ctx context.Context, tokenString string) (*userClaims, error) {
