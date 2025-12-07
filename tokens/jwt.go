@@ -15,6 +15,7 @@ type userClaims struct {
 	Email       string            `json:"email"`
 	Username    string            `json:"username"`
 	TokenType   string            `json:"token_type"`
+	TokenID     string            `json:"token_id"`
 	ExtraClaims map[string]string `json:"extra_claims"`
 }
 
@@ -141,6 +142,9 @@ func GenerateToken(
 	if len(in.TokenType) == 0 {
 		return nil, nil, errors.New("token type must not be empty")
 	}
+	if len(in.TokenID) == 0 {
+		return nil, nil, errors.New("token id must not be empty")
+	}
 	if in.ExtraClaims == nil {
 		in.ExtraClaims = make(map[string]string)
 	}
@@ -160,6 +164,7 @@ func GenerateToken(
 		Username:    username,
 		Email:       email,
 		TokenType:   in.TokenType,
+		TokenID:     in.TokenID,
 		ExtraClaims: in.ExtraClaims,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        in.TokenID,
