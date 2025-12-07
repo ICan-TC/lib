@@ -64,16 +64,18 @@ func (p *TokenProvider) GetAccess(ctx context.Context, sub, username, email, ref
 	})
 }
 
-func (p *TokenProvider) GetRefresh(ctx context.Context, sub, username, email string) (*jwt.Token, *time.Time, error) {
-	return GenerateToken(ctx, TokenGenerationInput{
+func (p *TokenProvider) GetRefresh(ctx context.Context, sub, username, email string) (*jwt.Token, *time.Time, string, error) {
+	id := ulid.Make().String()
+	token, exp, err := GenerateToken(ctx, TokenGenerationInput{
 		Sub: sub, Secret: p.secret, Exp: p.refreshExp,
 		TokenType: "refresh",
-		TokenID:   ulid.Make().String(),
+		TokenID:   id,
 		ExtraClaims: map[string]string{
 			"Username": username,
 			"Email":    email,
 		},
 	})
+	return token, exp, id, err
 }
 
 func (p *TokenProvider) ParseAccess(ctx context.Context, tokenString string) (*userClaims, error) {
